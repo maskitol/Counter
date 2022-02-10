@@ -1,0 +1,72 @@
+#include <Arduino.h>
+
+
+int analogPin = 3;     // номер порта считывания
+int val = 0;           //амплитуда импульса
+int count = 0;         // счетчик имульсов
+unsigned long sample = 0;  // секундный замер
+bool flag = false;        // Флаг начавшегося импульса
+
+void send(uint8_t s, uint8_t pos) {
+    digitalWrite(11, (pos / 2) & 1);
+    digitalWrite(10, pos & 1);
+
+    for (int i=0; i<=7; i++)  {
+        if (s & (1<<i)) {
+            digitalWrite(i + 2, HIGH);
+        }
+        else {      
+            digitalWrite(i + 2, LOW);
+        }
+    }
+
+    digitalWrite(9, HIGH);
+    digitalWrite(9, LOW);
+}
+
+void print(const char str[4]) {
+    send(str[0], 3);
+    send(str[1], 2);
+    send(str[2], 1);
+    send(str[3], 0);
+}
+
+void setup() {
+
+  
+    pinMode(2, OUTPUT); // D0 ( 8 )
+    
+    pinMode(3, OUTPUT); // D1 ( 9 )
+    pinMode(4, OUTPUT); // D2 ( 10 )
+    pinMode(5, OUTPUT); // D3 ( 11 )
+    pinMode(6, OUTPUT); // D4 ( 2 )
+    pinMode(7, OUTPUT); // D5 ( 1 )
+    pinMode(8, OUTPUT); // D6 ( 12 )
+
+    pinMode(9, OUTPUT); // Write pin  ( 3 )
+
+    pinMode(10, OUTPUT); // A0  ( 5 )
+    pinMode(11, OUTPUT); // A1  ( 4 )
+    Serial.begin(9600);
+    
+}
+
+
+ 
+void loop()
+{
+  
+  val = analogRead(analogPin);       // считываем значение
+  if((val>30)&& !flag){              // задаем порог компаратора
+    ++count;                         // добавлям импульс к счетчику
+    flag = true;}                    // Взводим флаг
+  if((val<30)&& flag)                // Ждем окончания импульса сбрасываем флаг
+    flag = false;
+  if ((millis()-sample)>=1000) {     //  Ждем секунду
+      Serial.println(count);         // выводим полученное значение
+     char str[4];
+     itoa(count, str, 10);
+     print(str);
+      sample = millis();             // обнуляем секундный таймер  
+      count = 0;      }              // обнуляем счетчик
+}
